@@ -23,3 +23,11 @@ hbuilder(x)环境
 
 选中你的app项目文件夹，然后点击上面的 发行 -> 原生App云打包
 # hybirdApp
+
+
+# API调用
+
+因为你这个web已经打包了浏览器，会在这个app里面的全局变量里面`plus`
+```js
+plus
+```
