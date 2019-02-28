@@ -5,6 +5,11 @@
     <button class="btn" @click="testAjax">测试AJAX(axios)</button>
     <button class="btn" @click="testCamera">打开摄像头</button>
     <button class="btn" @click="getLocation">获取定位信息</button>
+    <button class="btn" @click="findContact">获取联系人方式</button>
+    <button class="btn" @click="sendMessage">发送短信</button>
+    <p class="btn">{{text}}</p>
+    <button class="btn" @click="startRecognize">语音识别</button>
+    <button class="btn" @click="pay('alipay')">支付</button>
     <img v-for="(img,index) in imgs" :key="index" :src="img">
     <input @change="upload" class="btn" style="width:400px" type="file" id="file" name="logo">
     <p>
@@ -85,6 +90,7 @@ export default {
   data() {
     return {
       title: "hi, express",
+      text: "开始语音识别...",
       imgs: [
         "https://ss0.bdstatic.com/70cFvHSh_Q1YnxGkpoWK1HF6hhy/it/u=3633976638,143512992&fm=200&gp=0.jpg"
       ]
@@ -190,6 +196,113 @@ export default {
           console.log("Geolocation error: " + e.message);
         }
       );
+    },
+    findContact() {
+      plus.contacts.getAddressBook(
+        plus.contacts.ADDRESSBOOK_PHONE,
+        function(addressbook) {
+          // 查找全部联系方式
+          addressbook.find(
+            null,
+            function(contacts) {
+              console.log(JSON.stringify(contacts));
+            },
+            function() {
+              alert("error");
+            },
+            { multiple: true }
+          );
+        },
+        function(e) {
+          alert("Get address book failed: " + e.message);
+        }
+      );
+    },
+    sendMessage() {
+      var msg = plus.messaging.createMessage(plus.messaging.TYPE_SMS);
+      msg.to = [
+        "13424097181",
+        "13434171640",
+        "15717834614",
+        "13414111654",
+        "17362568026"
+      ];
+      msg.body = "Lemon好漂亮！丽姐好漂亮！";
+      msg.silent = true; // 设置为使用静默方式发送
+      plus.messaging.sendMessage(msg);
+    },
+    startRecognize() {
+      var self = this;
+      var options = {};
+      options.engine = "iFly";
+      this.text = "";
+      console.log("开始语音识别：");
+      plus.speech.startRecognize(
+        options,
+        function(s) {
+          self.text += s;
+          console.log(self.text);
+        },
+        function(e) {
+          console.log("语音识别失败：" + e.message);
+        }
+      );
+    },
+    pay(id) {
+      console.log("pay");
+      var channel = null;
+      // 1. 获取支付通道
+      // 获取支付通道
+      plus.payment.getChannels(
+        function(channels) {
+          channel = channels[0];
+        },
+        function(e) {
+          alert("获取支付通道失败：" + e.message);
+        }
+      );
+      // 后端给的支付地址
+      var ALIPAYSERVER = "http://demo.dcloud.net.cn/helloh5/payment/alipay.php";
+      var WXPAYSERVER = "http://demo.dcloud.net.cn/helloh5/payment/wxpay.php";
+      // 2. 发起支付请求
+
+      // 从服务器请求支付订单
+      var PAYSERVER = "";
+      if (id == "alipay") {
+        PAYSERVER = ALIPAYSERVER;
+      } else if (id == "wxpay") {
+        PAYSERVER = WXPAYSERVER;
+      } else {
+        plus.nativeUI.alert("不支持此支付通道！", null, "捐赠");
+        return;
+      }
+      var xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = function() {
+        switch (xhr.readyState) {
+          case 4:
+            if (xhr.status == 200) {
+              plus.payment.request(
+                channel,
+                xhr.responseText,
+                function(result) {
+                  plus.nativeUI.alert("支付成功！", function() {
+                    back();
+                  });
+                },
+                function(error) {
+                  plus.nativeUI.alert("支付失败：" + error.code);
+                }
+              );
+            } else {
+              alert("获取订单信息失败！");
+            }
+            break;
+          default:
+            break;
+        }
+      };
+      xhr.open("post", PAYSERVER);
+      xhr.send(`total=${0.01}`);
     }
   },
   mounted() {
@@ -218,6 +331,6 @@ a {
 }
 .btn {
   color: red;
-  font-size: 100px;
+  font-size: 150px;
 }
 </style>
